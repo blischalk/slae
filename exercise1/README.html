@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>README</title>
-<!-- 2016-12-15 Thu 09:26 -->
+<!-- 2016-12-15 Thu 10:02 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Brett Lischalk" />
@@ -287,13 +287,28 @@ int main(int argc, char **argv)
 };
 </pre>
 </div>
+
+<p>
+Compiling this code with <code>gcc bindshell.c -o bindshell</code> gives us a nice
+executable. Running the executable with <code>./bindshell</code> and then looking
+at our network using <code>netstat -antp</code> yields something very interesting&#x2026;
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="netstat-output">root@blahblah:~# netstat -atp
+Active Internet connections (servers and established)
+Proto Local Address Foreign Address State   PID/Program name
+tcp   *:4444        *:*             LISTEN  1657/bindshell
+</pre>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Brett Lischalk</p>
-<p class="date">Created: 2016-12-15 Thu 09:26</p>
+<p class="date">Created: 2016-12-15 Thu 10:02</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
