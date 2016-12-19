@@ -6,9 +6,10 @@
 <ul>
 <li><a href="#sec-1-1">1.1. Requirements</a></li>
 <li><a href="#sec-1-2">1.2. Strategy</a></li>
-<li><a href="#sec-1-3">1.3. The C program</a></li>
-<li><a href="#sec-1-4">1.4. Analysis of the C program</a></li>
-<li><a href="#sec-1-5">1.5. Assembly: Take 1</a></li>
+<li><a href="#sec-1-3">1.3. The Source Code</a></li>
+<li><a href="#sec-1-4">1.4. The C program</a></li>
+<li><a href="#sec-1-5">1.5. Analysis of the C program</a></li>
+<li><a href="#sec-1-6">1.6. Assembly: Take 1</a></li>
 </ul>
 </li>
 </ul>
@@ -40,7 +41,12 @@ My approach to building a tcp bind shell shellcode will be to:
 -   Attempt to write some assembly that calls the same system calls in the same order with the same arguments as the C program does
 -   Debug issues as of course there will be :)
 
-## The C program<a id="sec-1-3" name="sec-1-3"></a>
+## The Source Code<a id="sec-1-3" name="sec-1-3"></a>
+
+The source code and tools referenced in this article can be found here:
+[The Source Code and Tools](https://github.com/blischalk/slae/tree/master/exercise1)
+
+## The C program<a id="sec-1-4" name="sec-1-4"></a>
 
 From my experience playing around with socket programming in C and
 Python, there is a basic formula and group of function calls for
@@ -134,7 +140,7 @@ another terminal and use netcat to connect to port 4444 by running `nc
 Perfect! We have a tcp bind shell connection. Now we have to convert
 this to assembly&#x2026;
 
-## Analysis of the C program<a id="sec-1-4" name="sec-1-4"></a>
+## Analysis of the C program<a id="sec-1-5" name="sec-1-5"></a>
 
 We can use a tool called `strace` to help us learn more about what system calls
 our bind shell c program is making. Running `strace ./bindshell`, connecting
@@ -252,7 +258,7 @@ to replicate.
 Ok&#x2026; Using what we have gathered from our analysis lets take an attempt at
 writing some assembly!
 
-## Assembly: Take 1<a id="sec-1-5" name="sec-1-5"></a>
+## Assembly: Take 1<a id="sec-1-6" name="sec-1-6"></a>
 
 Lets lookup some values of constants:
 

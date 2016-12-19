@@ -23,6 +23,11 @@ My approach to building a tcp bind shell shellcode will be to:
 - Attempt to write some assembly that calls the same system calls in the same order with the same arguments as the C program does
 - Debug issues as of course there will be :)
 
+** The Source Code
+
+The source code and tools referenced in this article can be found here:
+[[https://github.com/blischalk/slae/tree/master/exercise1][The Source Code and Tools]]
+
 ** The C program
 
 From my experience playing around with socket programming in C and
