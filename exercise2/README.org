@@ -1,0 +1,39 @@
+* Assignment 2
+
+This blog post has been created for completing the requirements fo the SecurityTube
+Linux Assembly Expert certification:
+[[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert][http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert]]
+
+Student ID: SLAE-824
+
+** Requirements
+
+- Create a Shell Reverse TCP shellcode
+  - Reverse connects to configured IP and PORT
+  - Execs Shell on successful connection
+- IP and Port should be easily configurable
+
+** Strategy
+
+My approach to building a tcp reverse shell shellcode will be to:
+
+- Build off of our TCP bind shell developed in [[http://www.brettlischalk.com/posts/18-slae-problem-1-tcp-bind-shell-shellcode][Assignment 1]] of the SLAE
+- Modify the C program to call ~connect~ instead of ~bind~, ~listen~, and ~accept~
+- Analyze the C program system calls to see how the program interacts with the kernel to accomplish its tasks
+- Lookup the system calls and see what arguments and structures they take
+- Attempt to write some assembly that calls the same system calls in the same order with the same arguments as the C program does
+- Debug issues as of course there will be :)
+
+
+** The Source Code
+
+The source code and tools referenced in this article can be found here:
+
+** The C progam
+
+#+NAME: bindshell.c
+#+BEGIN_SRC c
+#+END_SRC
+
+** Analysis of the C progam
+** Assembly: Take 1
