@@ -1,7 +1,7 @@
 global _start
 ;; Note: We will store 2 file descriptors along the way
 ;; We will put the listening socket file descriptor in edi
-;; We will put the connection socket file descriptor in esi
+;; We will put the connection socket file descriptor in ebx
 
 section .text
   _start:
