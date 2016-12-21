@@ -210,6 +210,7 @@ for.
 
     #define SYS_SOCKET  1   /* sys_socket(2)    */
     #define SYS_BIND    2   /* sys_bind(2)      */
+    #define SYS_CONNECT 3   /* sys_connect(2)   */
     #define SYS_LISTEN  4   /* sys_listen(2)    */
     #define SYS_ACCEPT  5   /* sys_accept(2)    */
     // ... snip
@@ -294,9 +295,9 @@ a little gcc magic to see what the macro expands to:
     
         ;; Put the socket() args on the stack
         xor ecx, ecx
-        push ecx ; INADDR_ANY Accept on any interface 0x00000000
+        push ecx ; Specify protocol as 0
         push ebx ; SOCK_STREAM is the type of socket 1
-        push 0x2 ; Protocol AF_INET is the IP Protocol 2
+        push 0x2 ; Domain af_inet sets protocol family to ip protocol 2
     
         mov ecx, esp ; Save pointer to args for the socket() call
         int 0x80 ; call sys_socket
@@ -466,8 +467,6 @@ Let's write a wrapper script to set our port. We just accept the port
 as a command line argument to our script and interpolate it into our
 shellcode and print out the result:
 
-    #!/usr/bin/python
-    
     #!/usr/bin/python
     
     import sys
