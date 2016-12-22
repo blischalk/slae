@@ -236,7 +236,7 @@ main()
 {% endhighlight %}
 
 If we compile our egghunterdemo.c using `gcc -g egghunterdemo.c -o egghunterdemo`,
-start a netcat listener on port 444 (as our shellcode is a reverse shell) using
+start a netcat listener on port 4444 (as our shellcode is a reverse shell) using
 `netcat -nlvp 4444` and then execute our egghunter using `./egghunterdemo` we
 will see that we indeed get a connection back from our shellcode~
 
