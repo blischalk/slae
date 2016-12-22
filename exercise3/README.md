@@ -20,6 +20,10 @@ Student ID: SLAE-824
 - Create a working egghunter demo
 - Make demo configurable for different payloads
 
+## Source Code
+
+Source code for this problem can be found [here](https://github.com/blischalk/slae/tree/master/exercise3)
+
 ## Background
 
 So what exactly is an "egghunter"? Well recently I embarked upon the
