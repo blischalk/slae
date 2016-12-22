@@ -1,21 +1,3 @@
-<div id="table-of-contents">
-<h2>Table of Contents</h2>
-<div id="text-table-of-contents">
-<ul>
-<li><a href="#sec-1">1. Assignment 2</a>
-<ul>
-<li><a href="#sec-1-1">1.1. Requirements</a></li>
-<li><a href="#sec-1-2">1.2. Strategy</a></li>
-<li><a href="#sec-1-3">1.3. The Source Code</a></li>
-<li><a href="#sec-1-4">1.4. The C progam</a></li>
-<li><a href="#sec-1-5">1.5. Analysis of the C progam</a></li>
-<li><a href="#sec-1-6">1.6. Assembly: Take 1</a></li>
-</ul>
-</li>
-</ul>
-</div>
-</div>
-
 # Assignment 2<a id="sec-1" name="sec-1"></a>
 
 This blog post has been created for completing the requirements for the SecurityTube
@@ -44,7 +26,7 @@ My approach to building a tcp reverse shell shellcode will be to:
 
 ## The Source Code<a id="sec-1-3" name="sec-1-3"></a>
 
-The source code and tools referenced in this article can be found here:
+The source code and tools referenced in this article can be found [here](https://github.com/blischalk/slae/tree/master/exercise2)
 
 ## The C progam<a id="sec-1-4" name="sec-1-4"></a>
 
