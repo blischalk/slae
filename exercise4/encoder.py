@@ -25,10 +25,15 @@ while len(shellcode_bytes) != 0:
 
   # get the first and rest of our shellcode
   f, r            = shellcode_bytes[0], shellcode_bytes[1:]
+  #print "encoding: %x" % f
+  b               = encoder_dirty & 0xff
+  #print "b is: %x" % b
+  result          = f ^ b
+  #print "result: %x" % result
   # get the lowest significant byte of our decoder
   # xor the current shellcode byte
   # append it to our encoded shellcode
-  encoded.append(f ^ (encoder_dirty & 0xff))
+  encoded.append(result)
 
   # update our shellcode to be the shellcode
   # minus the first byte

