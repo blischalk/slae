@@ -65,7 +65,7 @@ section .text
     mov eax, DECODER_RING
     xor edx, edx
     xor edi, edi
-    mov cl, 25 ; encoded shellcode length
+    mov cl, ; encoded shellcode length
 
   reset:
     mov ebx, DECODER_RING
