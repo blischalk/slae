@@ -26,14 +26,14 @@ The source code for this article can be found [here](https://github.com/blischal
 
 My strategy for fulfulling this assignment will be the following:
 
-- Think about what sort of encoding algorithm I want to used
+- Think about what sort of encoding algorithm I want to use
 - Write a python program that will take the execve-stack shellcode and encode it using the algorithm I decide on
 - Write an assembly program that contains the encoded shellcode, decodes, and then executes it
 
 ## Encoding Algorithm
 
 So what sort of algorithm shall I write? Off the top of my head I'm thinking
-of an cycling encoder. Something like the following:
+of a cycling encoder. Something like the following:
 
 - Jump, Call, Pop our shellcde location into esi
 - Think of a dword such as `0xdeadbeef`.
@@ -54,6 +54,7 @@ The algorithm sounds like it should work... Let's give it a shot
 
 {% highlight nasm %}
 
+DECODER_RING equ ;; dword to decode with
 global _start
 section .text
   _start:
@@ -61,15 +62,16 @@ section .text
 
   decoder:
     pop esi
-    mov eax, decoderring
+    mov eax, DECODER_RING
     xor edx, edx
-    mov ecx, 0xxx
+    xor edi, edi
+    mov cl, 25 ; encoded shellcode length
 
   reset:
-    mov ebx, decoderring
+    mov ebx, DECODER_RING
 
   decode:
-    cmp ebx, 0x00000000
+    cmp ebx, edi
     jz reset
     xor [esi+edx], bl
     inc edx
@@ -79,8 +81,7 @@ section .text
 
   call_decoder:
     call decoder
-    encoded: dd "xxxxxxxxxxxxxxxxxxxxx"
-    decoderring: dword 0xdeadbeef
+    encoded: db ;; Encoded bytes here
 
 {% endhighlight %}
 
@@ -139,8 +140,8 @@ print(",".join(formatted))
 
 Let's try encoding the execve-stack shellcode, placing it
 in our decoder assembly program, extracting the bytes and
-placing those in our shellcode.c stub and see if we get a
-bind shell as we would hope.
+placing those in our shellcode.c stub and see if we can get
+some code execution as we would hope.
 
 Grab the bytes of execve-stack shellcode. Make sure to adjust the cut
 column count to 7 as the disassembly has bytes in the seventh column:
