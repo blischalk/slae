@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "SLAE Problem 5: Msfpayload Analysis"
+title: "SLAE Problem 5.1: Msfpayload Analysis"
 description: "Analysis of Msfpayload shellcode samples"
 tags: [asm, shellcode, msfpayload]
 ---
 
-# Assignment 5
+# Assignment 5.1
 
 This blog post has been created for completing the requirements for the SecurityTube
 Linux Assembly Expert certification:
@@ -144,3 +144,15 @@ was doing was using a push dword with the port and sin_family in 1 operation.
 
         push word 0x5c11 ; sin_port=4444 (network byte order)
         push word bx     ; sin_family=AF_INET (0x2)
+
+If we look at the objdump of a little nasm program to compare the instructions
+we see:
+
+1. Using 2 xor operations yields the same number of bytes/opcodes as using an xor and a mul instruction
+2. Using a single dword push instruction instead of 2 push word instructions yields 1 less byte/opcode but it does introduce a null byte.
+
+<img src="opcodeComparison.png" alt="opcodeComparison.png" style="width: 500px;"/>
+
+It was really interesting to see what MSFvenom generated shellcode looks like.
+Doing this exercise has taken a bit of the mystique of MSFVenom away and I look
+forward to analyzing more shellcode from it to see what else I can learn.
