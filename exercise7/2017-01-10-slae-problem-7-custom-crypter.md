@@ -19,6 +19,18 @@ Student ID: SLAE-824
 
 The code for this exercise can be found [here](https://github.com/blischalk/slae/tree/master/exercise7).
 
+## Background: Crypters and Packers
+
+So what is a Crypter or a Packer? From what I have read crypters and
+packers are quite similar. While the lines between them can blur a
+packer generally deals with compression and obfuscation and is often
+used by software companies to prevent revers-engineering their
+software. A crypter is focused on encryption and is a program that
+has grown out of the underground community. Both crypters and packers
+obfuscate code to deter reverse-engineering. By utilizing a crypter or
+packer on malicious code an attacker can increase their chances of
+bypassing anti-virus fingerprint/signature based detection.
+
 ## Strategy
 
 For this last SLAE problem I decided that I wanted to try and use AES
